@@ -107,9 +107,9 @@ namespace atframe.gw.inner {
         #endregion
 
         #region wrapper delegate types
-        public delegate Int32 OnWriteDataFunction(ClientProtocol self, byte[] data, [Out] bool is_done);
+        public delegate Int32 OnWriteDataFunction(ClientProtocol self, byte[] data, ref bool is_done);
         public delegate Int32 OnReceiveMessageFunction(ClientProtocol self, byte[] data);
-        public delegate Int32 OnInitNewSessionFunction(ClientProtocol self, [Out] UInt64 session_id);
+        public delegate Int32 OnInitNewSessionFunction(ClientProtocol self, ref UInt64 session_id);
         public delegate Int32 OnInitReconnectSessionFunction(ClientProtocol self, UInt64 session_id);
         public delegate Int32 OnCloseFunction(ClientProtocol self, Int32 reason);
         public delegate Int32 OnHandshakeDoneFunction(ClientProtocol self, Int32 status);
@@ -119,7 +119,7 @@ namespace atframe.gw.inner {
         static private readonly Dictionary<IntPtr, ClientProtocol> _binder_manager = new Dictionary<IntPtr, ClientProtocol>();
 
         #region member datas
-        private IntPtr _native_protocol;
+        private IntPtr _native_protocol = new IntPtr(0);
         public OnWriteDataFunction OnWriteData = null;
         public OnReceiveMessageFunction OnReceiveMessage = null;
         public OnInitNewSessionFunction OnInitNewSession = null;
@@ -131,7 +131,7 @@ namespace atframe.gw.inner {
         #endregion
         protected IntPtr NativeProtocol {
             get {
-                if (null == _native_protocol) {
+                if (0 == _native_protocol.ToInt64()) {
                     _native_protocol = libatgw_inner_v1_c_create();
                     {
                         // write
@@ -175,7 +175,7 @@ namespace atframe.gw.inner {
         }
 
         public ClientProtocol() {
-            if (null == NativeProtocol) {
+            if (0 == NativeProtocol.ToInt64()) {
                 throw new System.OutOfMemoryException("Can not create native atgateway inner protocol v1 object");
             } else {
                 _binder_manager.Add(NativeProtocol, this);
@@ -269,7 +269,7 @@ namespace atframe.gw.inner {
                 byte[] data_buffer = new byte[buffer_length];
                 Marshal.Copy(buffer, data_buffer, 0, (int)buffer_length);
                 bool is_done_b = false;
-                Int32 ret = self.OnWriteData(self, data_buffer, is_done_b);
+                Int32 ret = self.OnWriteData(self, data_buffer, ref is_done_b);
                 is_done = is_done_b ? 1 : 0;
                 return ret;
             }
@@ -306,7 +306,7 @@ namespace atframe.gw.inner {
 
             if (null != self.OnInitNewSession)
             {
-                return self.OnInitNewSession(self, session_id);
+                return self.OnInitNewSession(self, ref session_id);
             }
 
             return (Int32)error_code_t.EN_ECT_MISS_CALLBACKS;
@@ -478,7 +478,7 @@ namespace atframe.gw.inner {
                                                                  [Out] UInt64 out_len);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void libatgw_inner_v1_c_read(IntPtr context, Int32 ssz, byte[] buff, UInt64 len, [Out] Int32 errcode);
+        private unsafe static extern void libatgw_inner_v1_c_read(IntPtr context, Int32 ssz, byte* buff, UInt64 len, [Out] Int32 errcode);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
         private static extern Int32 libatgw_inner_v1_c_write_done(IntPtr context, Int32 status);
@@ -521,7 +521,7 @@ namespace atframe.gw.inner {
         public String Information {
             get {
                 IntPtr native = NativeProtocol;
-                if (null == native) {
+                if (0 == native.ToInt64()) {
                     return "";
                 }
 
@@ -533,7 +533,7 @@ namespace atframe.gw.inner {
 
         public void SetReceiveBufferLimit(UInt64 max_size, UInt64 max_number) {
             IntPtr native = NativeProtocol;
-            if (null == native)
+            if (0 == native.ToInt64())
             {
                 return;
             }
@@ -544,7 +544,7 @@ namespace atframe.gw.inner {
         public void SetSendBufferLimit(UInt64 max_size, UInt64 max_number)
         {
             IntPtr native = NativeProtocol;
-            if (null == native)
+            if (0 == native.ToInt64())
             {
                 return;
             }
@@ -555,7 +555,7 @@ namespace atframe.gw.inner {
         public Int32 StartSession()
         {
             IntPtr native = NativeProtocol;
-            if (null == native)
+            if (0 == native.ToInt64())
             {
                 return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
@@ -566,7 +566,7 @@ namespace atframe.gw.inner {
         public Int32 ReconnectSession(UInt64 session_id, Int32 crypt_type, byte[] secret, UInt32 keybits)
         {
             IntPtr native = NativeProtocol;
-            if (null == native)
+            if (0 == native.ToInt64())
             {
                 return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
@@ -578,7 +578,7 @@ namespace atframe.gw.inner {
             get
             {
                 IntPtr native = NativeProtocol;
-                if (null == native)
+                if (0 == native.ToInt64())
                 {
                     return 0;
                 }
@@ -592,7 +592,7 @@ namespace atframe.gw.inner {
             get
             {
                 IntPtr native = NativeProtocol;
-                if (null == native)
+                if (0 == native.ToInt64())
                 {
                     return 0;
                 }
@@ -606,7 +606,7 @@ namespace atframe.gw.inner {
             get
             {
                 IntPtr native = NativeProtocol;
-                if (null == native)
+                if (0 == native.ToInt64())
                 {
                     return new byte[0];
                 }
@@ -623,7 +623,7 @@ namespace atframe.gw.inner {
             get
             {
                 IntPtr native = NativeProtocol;
-                if (null == native)
+                if (0 == native.ToInt64())
                 {
                     return 0;
                 }
@@ -632,9 +632,9 @@ namespace atframe.gw.inner {
             }
         }
 
-        public unsafe  void OnReadAlloc(UInt64 suggest_size, [Out] byte* out_buf, [Out] UInt64 len) {
+        public unsafe void OnReadAlloc(UInt64 suggest_size, ref byte* out_buf, ref UInt64 len) {
             IntPtr native = NativeProtocol;
-            if (null == native)
+            if (0 == native.ToInt64())
             {
                 return;
             }
@@ -645,23 +645,23 @@ namespace atframe.gw.inner {
         /// <summary>
         /// Call it when receive any data from peer
         /// </summary>
-        /// <param name="ssz">read data length or error code</param>
         /// <param name="buf">available buffer block</param>
+        /// <param name="available_sz">available buffer size, must be smaller than len from OnReadAlloc()</param>
         /// <returns>0 or error code</returns>
-        public Int32 OnRead(Int32 ssz, byte[] buf)
+        public unsafe Int32 OnRead(byte* buf, UInt64 available_sz)
         {
             IntPtr native = NativeProtocol;
-            if (null == native)
+            if (0 == native.ToInt64())
             {
                 return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
-            if (null == buf || 0 == buf.Length) {
+            if (null == buf || 0 == available_sz) {
                 return 0;
             }
 
             Int32 ret = 0;
-            libatgw_inner_v1_c_read(native, ssz, buf, (UInt64)buf.Length, ret);
+            libatgw_inner_v1_c_read(native, (Int32)available_sz, buf, available_sz, ret);
             return ret;
         }
 
@@ -672,7 +672,7 @@ namespace atframe.gw.inner {
         /// <returns></returns>
         public Int32 NotifyWriteDone(Int32 status) {
             IntPtr native = NativeProtocol;
-            if (null == native)
+            if (0 == native.ToInt64())
             {
                 return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
@@ -682,7 +682,7 @@ namespace atframe.gw.inner {
 
         public Int32 PostMessage(byte[] buf) {
             IntPtr native = NativeProtocol;
-            if (null == native)
+            if (0 == native.ToInt64())
             {
                 return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
@@ -698,7 +698,7 @@ namespace atframe.gw.inner {
         public Int32 SendPing()
         {
             IntPtr native = NativeProtocol;
-            if (null == native)
+            if (0 == native.ToInt64())
             {
                 return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
@@ -711,7 +711,7 @@ namespace atframe.gw.inner {
             get
             {
                 IntPtr native = NativeProtocol;
-                if (null == native)
+                if (0 == native.ToInt64())
                 {
                     return 0;
                 }
@@ -723,7 +723,7 @@ namespace atframe.gw.inner {
         public Int32 Close(Int32 reason = (Int32)close_reason_t.EN_CRT_UNKNOWN)
         {
             IntPtr native = NativeProtocol;
-            if (null == native)
+            if (0 == native.ToInt64())
             {
                 return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
@@ -736,7 +736,7 @@ namespace atframe.gw.inner {
             get
             {
                 IntPtr native = NativeProtocol;
-                if (null == native)
+                if (0 == native.ToInt64())
                 {
                     return false;
                 }
@@ -750,7 +750,7 @@ namespace atframe.gw.inner {
             get
             {
                 IntPtr native = NativeProtocol;
-                if (null == native)
+                if (0 == native.ToInt64())
                 {
                     return false;
                 }
@@ -764,7 +764,7 @@ namespace atframe.gw.inner {
             get
             {
                 IntPtr native = NativeProtocol;
-                if (null == native)
+                if (0 == native.ToInt64())
                 {
                     return false;
                 }
@@ -778,7 +778,7 @@ namespace atframe.gw.inner {
             get
             {
                 IntPtr native = NativeProtocol;
-                if (null == native)
+                if (0 == native.ToInt64())
                 {
                     return false;
                 }
@@ -792,7 +792,7 @@ namespace atframe.gw.inner {
             get
             {
                 IntPtr native = NativeProtocol;
-                if (null == native)
+                if (0 == native.ToInt64())
                 {
                     return false;
                 }
@@ -806,7 +806,7 @@ namespace atframe.gw.inner {
             get
             {
                 IntPtr native = NativeProtocol;
-                if (null == native)
+                if (0 == native.ToInt64())
                 {
                     return false;
                 }
