@@ -4,7 +4,8 @@ using System.Linq;
 using System.Text;
 using System.Runtime.InteropServices;
 
-namespace atframe.gw.inner {
+namespace atframe.gw.inner
+{
     /// <summary>
     /// Client protocol context wrapper for atgateway
     /// </summary>
@@ -50,17 +51,19 @@ namespace atframe.gw.inner {
         #region close reason
         public enum close_reason_t : int
         {
-            EN_CRT_UNKNOWN = 0,
-            EN_CRT_LOGOUT = 1,
-            EN_CRT_TRAFIC_EXTENDED = 2,
-            EN_CRT_INVALID_DATA = 3,
-            EN_CRT_RESET = 4,
-            EN_CRT_RECONNECT_BOUND = 1000,
-            EN_CRT_FIRST_IDLE = 1001,
-            EN_CRT_SERVER_CLOSED = 1002,
-            EN_CRT_SERVER_BUSY = 1003,
-            EN_CRT_KICKOFF = 1004,
-            EN_CRT_HANDSHAKE = 1005,
+            EN_CRT_UNKNOWN = 0x0000,
+            EN_CRT_LOGOUT = 0x0001,
+            EN_CRT_TRAFIC_EXTENDED = 0x0002,
+            EN_CRT_INVALID_DATA = 0x0003,
+            EN_CRT_RESET = 0x0004,
+            EN_CRT_RECONNECT_INNER_BOUND = 0x0100,
+            EN_CRT_RECONNECT_BOUND = 0x10000,
+            EN_CRT_FIRST_IDLE = 0x10001,
+            EN_CRT_SERVER_CLOSED = 0x10002,
+            EN_CRT_SERVER_BUSY = 0x10003,
+            EN_CRT_KICKOFF = 0x10004,
+            EN_CRT_HANDSHAKE = 0x10005,
+            EN_CRT_NO_RECONNECT_INNER_BOUND = 0x10100,
         };
         #endregion
 
@@ -76,7 +79,7 @@ namespace atframe.gw.inner {
         /// is_done should be set into 1 and call libatgw_inner_v1_c_write_done when all writings are finished.</param>
         /// <returns></returns>
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate Int32 libatgw_inner_v1_c_on_write_start_fn_t(IntPtr context, IntPtr buffer, UInt64 buffer_length, [Out] Int32 is_done);
+        private delegate Int32 libatgw_inner_v1_c_on_write_start_fn_t(IntPtr context, IntPtr buffer, UInt64 buffer_length, out Int32 is_done);
 
         /// <summary>
         /// On message delegate function.
@@ -90,7 +93,7 @@ namespace atframe.gw.inner {
         private delegate Int32 libatgw_inner_v1_c_on_message_fn_t(IntPtr context, IntPtr buffer, UInt64 buffer_length);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate Int32 libatgw_inner_v1_c_on_init_new_session_fn_t(IntPtr context, [Out] UInt64 session_id);
+        private delegate Int32 libatgw_inner_v1_c_on_init_new_session_fn_t(IntPtr context, out UInt64 session_id);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate Int32 libatgw_inner_v1_c_on_init_reconnect_fn_t(IntPtr context, UInt64 session_id);
@@ -109,7 +112,7 @@ namespace atframe.gw.inner {
         #region wrapper delegate types
         public delegate Int32 OnWriteDataFunction(ClientProtocol self, byte[] data, ref bool is_done);
         public delegate Int32 OnReceiveMessageFunction(ClientProtocol self, byte[] data);
-        public delegate Int32 OnInitNewSessionFunction(ClientProtocol self, ref UInt64 session_id);
+        public delegate Int32 OnInitNewSessionFunction(ClientProtocol self, out UInt64 session_id);
         public delegate Int32 OnInitReconnectSessionFunction(ClientProtocol self, UInt64 session_id);
         public delegate Int32 OnCloseFunction(ClientProtocol self, Int32 reason);
         public delegate Int32 OnHandshakeDoneFunction(ClientProtocol self, Int32 status);
@@ -120,6 +123,7 @@ namespace atframe.gw.inner {
 
         #region member datas
         private IntPtr _native_protocol = new IntPtr(0);
+        private unsafe byte* _last_alloc = null;
         public OnWriteDataFunction OnWriteData = null;
         public OnReceiveMessageFunction OnReceiveMessage = null;
         public OnInitNewSessionFunction OnInitNewSession = null;
@@ -129,9 +133,12 @@ namespace atframe.gw.inner {
         public OnHandshakeDoneFunction OnHandshakeUpdate = null;
         public OnErrorFunction OnError = null;
         #endregion
-        protected IntPtr NativeProtocol {
-            get {
-                if (0 == _native_protocol.ToInt64()) {
+        protected IntPtr NativeProtocol
+        {
+            get
+            {
+                if (0 == _native_protocol.ToInt64())
+                {
                     _native_protocol = libatgw_inner_v1_c_create();
                     {
                         // write
@@ -174,16 +181,22 @@ namespace atframe.gw.inner {
             }
         }
 
-        public ClientProtocol() {
-            if (0 == NativeProtocol.ToInt64()) {
+        public ClientProtocol()
+        {
+            if (0 == NativeProtocol.ToInt64())
+            {
                 throw new System.OutOfMemoryException("Can not create native atgateway inner protocol v1 object");
-            } else {
+            }
+            else
+            {
                 _binder_manager.Add(NativeProtocol, this);
             }
         }
 
-        ~ClientProtocol() {
-            if (null != _native_protocol) {
+        ~ClientProtocol()
+        {
+            if (null != _native_protocol)
+            {
                 libatgw_inner_v1_c_destroy(_native_protocol);
                 _binder_manager.Remove(_native_protocol);
             }
@@ -259,13 +272,17 @@ namespace atframe.gw.inner {
             }
         }
 
-        static public Int32 proto_on_write_start_fn(IntPtr context, IntPtr buffer, UInt64 buffer_length, [Out] Int32 is_done) {
+        static public Int32 proto_on_write_start_fn(IntPtr context, IntPtr buffer, UInt64 buffer_length, out Int32 is_done)
+        {
             ClientProtocol self = GetClientProtocol(context);
-            if (null == self) {
+            if (null == self)
+            {
+                is_done = 1;
                 return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
-            if (null != self.OnWriteData) {
+            if (null != self.OnWriteData)
+            {
                 byte[] data_buffer = new byte[buffer_length];
                 Marshal.Copy(buffer, data_buffer, 0, (int)buffer_length);
                 bool is_done_b = false;
@@ -296,19 +313,22 @@ namespace atframe.gw.inner {
             return 0;
         }
 
-        static public Int32 proto_on_init_new_session_fn(IntPtr context, [Out] UInt64 session_id)
+        static public Int32 proto_on_init_new_session_fn(IntPtr context, out UInt64 session_id)
         {
             ClientProtocol self = GetClientProtocol(context);
             if (null == self)
             {
+                session_id = 0;
                 return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
             if (null != self.OnInitNewSession)
             {
-                return self.OnInitNewSession(self, ref session_id);
+                session_id = 0;
+                return self.OnInitNewSession(self, out session_id);
             }
 
+            session_id = 0;
             return (Int32)error_code_t.EN_ECT_MISS_CALLBACKS;
         }
 
@@ -399,7 +419,7 @@ namespace atframe.gw.inner {
         /// Create a inner protocol context for atgateway
         /// </summary>
         /// <returns>protocol context for atgateway, null if failed</returns>
-        [DllImport("libatgw_inner_v1_c", CallingConvention=CallingConvention.Cdecl)]
+        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr libatgw_inner_v1_c_create();
 
         /// <summary>
@@ -472,13 +492,13 @@ namespace atframe.gw.inner {
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
         private static extern UInt32 libatgw_inner_v1_c_get_crypt_keybits(IntPtr context);
-                           
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private unsafe static extern void libatgw_inner_v1_c_read_alloc(IntPtr context, UInt64 suggested_size, [Out] byte* out_buf,
-                                                                 [Out] UInt64 out_len);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private unsafe static extern void libatgw_inner_v1_c_read(IntPtr context, Int32 ssz, byte* buff, UInt64 len, [Out] Int32 errcode);
+        private unsafe static extern void libatgw_inner_v1_c_read_alloc(IntPtr context, UInt64 suggested_size, out IntPtr out_buf,
+                                                                 out UInt64 out_len);
+
+        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        private unsafe static extern void libatgw_inner_v1_c_read(IntPtr context, Int32 ssz, byte* buff, UInt64 len, out Int32 errcode);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
         private static extern Int32 libatgw_inner_v1_c_write_done(IntPtr context, Int32 status);
@@ -518,10 +538,13 @@ namespace atframe.gw.inner {
         /// <summary>
         /// Get imformation of protocol handle, it cost a lot and should not be called frequently.
         /// </summary>
-        public String Information {
-            get {
+        public String Information
+        {
+            get
+            {
                 IntPtr native = NativeProtocol;
-                if (0 == native.ToInt64()) {
+                if (0 == native.ToInt64())
+                {
                     return "";
                 }
 
@@ -531,7 +554,8 @@ namespace atframe.gw.inner {
             }
         }
 
-        public void SetReceiveBufferLimit(UInt64 max_size, UInt64 max_number) {
+        public void SetReceiveBufferLimit(UInt64 max_size, UInt64 max_number)
+        {
             IntPtr native = NativeProtocol;
             if (0 == native.ToInt64())
             {
@@ -574,7 +598,8 @@ namespace atframe.gw.inner {
             return libatgw_inner_v1_c_reconnect_session(native, session_id, crypt_type, secret, (UInt64)secret.Length, keybits);
         }
 
-        public UInt64 SessionID {
+        public UInt64 SessionID
+        {
             get
             {
                 IntPtr native = NativeProtocol;
@@ -632,23 +657,34 @@ namespace atframe.gw.inner {
             }
         }
 
-        public unsafe void OnReadAlloc(UInt64 suggest_size, ref byte* out_buf, ref UInt64 len) {
+        /// <summary>
+        /// Allocate buffer block to store data
+        /// </summary>
+        /// <param name="suggest_size">suggest size to allocate, it's 64KB in libuv</param>
+        /// <param name="out_buf">allocated buffer address</param>
+        /// <param name="len">allocated buffer length</param>
+        public unsafe void AllocForRead(UInt64 suggest_size, out byte* out_buf, out UInt64 len)
+        {
             IntPtr native = NativeProtocol;
             if (0 == native.ToInt64())
             {
+                _last_alloc = out_buf = null;
+                len = 0;
                 return;
             }
 
-            libatgw_inner_v1_c_read_alloc(native, suggest_size, out_buf, len);
+            IntPtr out_buf_ptr;
+            libatgw_inner_v1_c_read_alloc(native, suggest_size, out out_buf_ptr, out len);
+            out_buf = (byte*)out_buf_ptr.ToPointer();
+            _last_alloc = out_buf;
         }
 
         /// <summary>
-        /// Call it when receive any data from peer
+        /// Mark how much data is already copied into read buffer manager
         /// </summary>
-        /// <param name="buf">available buffer block</param>
-        /// <param name="available_sz">available buffer size, must be smaller than len from OnReadAlloc()</param>
+        /// <param name="read_sz">lengtn of read data. read buffer manager will cost len bytes and try to dispatch message. must be smaller than len from OnReadAlloc()</param>
         /// <returns>0 or error code</returns>
-        public unsafe Int32 OnRead(byte* buf, UInt64 available_sz)
+        public unsafe Int32 ReadDone(UInt64 read_sz)
         {
             IntPtr native = NativeProtocol;
             if (0 == native.ToInt64())
@@ -656,12 +692,79 @@ namespace atframe.gw.inner {
                 return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
-            if (null == buf || 0 == available_sz) {
+            if (0 == read_sz)
+            {
                 return 0;
             }
 
             Int32 ret = 0;
-            libatgw_inner_v1_c_read(native, (Int32)available_sz, buf, available_sz, ret);
+            libatgw_inner_v1_c_read(native, (Int32)read_sz, _last_alloc, read_sz, out ret);
+            return ret;
+        }
+
+        private unsafe void CopyBytes(byte* pSource, UInt64 sourceOffset, byte* pTarget, UInt64 targetOffset, UInt64 count) {
+            // If either array is not instantiated, you cannot complete the copy.
+            if ((pSource == null) || (pTarget == null))
+            {
+                throw new System.ArgumentException();
+            }
+
+            // Set the starting points in source and target for the copying.
+            byte* ps = pSource + sourceOffset;
+            byte* pt = pTarget + targetOffset;
+
+            // Copy the specified number of bytes from source to target.
+            for (UInt64 i = 0; i < count; i++)
+            {
+                *pt = *ps;
+                pt++;
+                ps++;
+            }
+        }
+
+        /// <summary>
+        /// Copy and read data from a byte array. This will copy the read buffer once into the read manager.
+        /// </summary>
+        /// <param name="buf">data source</param>
+        /// <param name="len">data length</param>
+        /// <returns>0 or error code</returns>
+        public unsafe Int32 ReadFrom(byte[] buf, UInt64 len)
+        {
+            Int32 ret = 0;
+            UInt64 offset = 0;
+            while (offset < len) {
+                byte* alloc_buf;
+                UInt64 alloc_len;
+                AllocForRead(len - offset, out alloc_buf, out alloc_len);
+                if (0 == alloc_len || null == alloc_buf) {
+                    return (Int32)error_code_t.EN_ECT_MALLOC;
+                }
+
+                // The following fixed statement pins the location of the buffer objects
+                // in memory so that they will not be moved by garbage collection.
+                fixed (byte* pBuf = buf)
+                {
+                    // just a message or not a full message
+                    if (alloc_len >= len - offset)
+                    {
+                        // copy buf + offset, 
+                        CopyBytes(pBuf, offset, alloc_buf, 0, len - offset);
+                        ret = ReadDone(len - offset);
+                        offset = len;
+                    }
+                    else
+                    {
+                        CopyBytes(pBuf, offset, alloc_buf, 0, alloc_len);
+                        ret = ReadDone(alloc_len);
+                        offset += alloc_len;
+                    }
+                }
+
+                if (ret < 0) {
+                    return ret;
+                }
+            }
+
             return ret;
         }
 
@@ -670,7 +773,8 @@ namespace atframe.gw.inner {
         /// </summary>
         /// <param name="status">0 or error code</param>
         /// <returns></returns>
-        public Int32 NotifyWriteDone(Int32 status) {
+        public Int32 NotifyWriteDone(Int32 status)
+        {
             IntPtr native = NativeProtocol;
             if (0 == native.ToInt64())
             {
@@ -680,7 +784,8 @@ namespace atframe.gw.inner {
             return libatgw_inner_v1_c_write_done(native, status);
         }
 
-        public Int32 PostMessage(byte[] buf) {
+        public Int32 PostMessage(byte[] buf)
+        {
             IntPtr native = NativeProtocol;
             if (0 == native.ToInt64())
             {
