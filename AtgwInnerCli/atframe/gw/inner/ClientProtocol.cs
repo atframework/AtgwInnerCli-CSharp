@@ -123,7 +123,7 @@ namespace atframe.gw.inner
 
         #region member datas
         private IntPtr _native_protocol = new IntPtr(0);
-        private unsafe byte* _last_alloc = null;
+        private IntPtr _last_alloc = new IntPtr(0);
         public OnWriteDataFunction OnWriteData = null;
         public OnReceiveMessageFunction OnReceiveMessage = null;
         public OnInitNewSessionFunction OnInitNewSession = null;
@@ -494,11 +494,11 @@ namespace atframe.gw.inner
         private static extern UInt32 libatgw_inner_v1_c_get_crypt_keybits(IntPtr context);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private unsafe static extern void libatgw_inner_v1_c_read_alloc(IntPtr context, UInt64 suggested_size, out IntPtr out_buf,
+        private static extern void libatgw_inner_v1_c_read_alloc(IntPtr context, UInt64 suggested_size, out IntPtr out_buf,
                                                                  out UInt64 out_len);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private unsafe static extern void libatgw_inner_v1_c_read(IntPtr context, Int32 ssz, byte* buff, UInt64 len, out Int32 errcode);
+        private static extern void libatgw_inner_v1_c_read(IntPtr context, Int32 ssz, IntPtr buff, UInt64 len, out Int32 errcode);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
         private static extern Int32 libatgw_inner_v1_c_write_done(IntPtr context, Int32 status);
@@ -663,20 +663,18 @@ namespace atframe.gw.inner
         /// <param name="suggest_size">suggest size to allocate, it's 64KB in libuv</param>
         /// <param name="out_buf">allocated buffer address</param>
         /// <param name="len">allocated buffer length</param>
-        public unsafe void AllocForRead(UInt64 suggest_size, out byte* out_buf, out UInt64 len)
+        public void AllocForRead(UInt64 suggest_size, out IntPtr out_buf, out UInt64 len)
         {
             IntPtr native = NativeProtocol;
             if (0 == native.ToInt64())
             {
-                _last_alloc = out_buf = null;
+                _last_alloc = out_buf = new IntPtr(0);
                 len = 0;
                 return;
             }
 
-            IntPtr out_buf_ptr;
-            libatgw_inner_v1_c_read_alloc(native, suggest_size, out out_buf_ptr, out len);
-            out_buf = (byte*)out_buf_ptr.ToPointer();
-            _last_alloc = out_buf;
+            libatgw_inner_v1_c_read_alloc(native, suggest_size, out _last_alloc, out len);
+            out_buf = _last_alloc;
         }
 
         /// <summary>
@@ -684,7 +682,7 @@ namespace atframe.gw.inner
         /// </summary>
         /// <param name="read_sz">lengtn of read data. read buffer manager will cost len bytes and try to dispatch message. must be smaller than len from OnReadAlloc()</param>
         /// <returns>0 or error code</returns>
-        public unsafe Int32 ReadDone(UInt64 read_sz)
+        public Int32 ReadDone(UInt64 read_sz)
         {
             IntPtr native = NativeProtocol;
             if (0 == native.ToInt64())
@@ -702,62 +700,36 @@ namespace atframe.gw.inner
             return ret;
         }
 
-        private unsafe void CopyBytes(byte* pSource, UInt64 sourceOffset, byte* pTarget, UInt64 targetOffset, UInt64 count) {
-            // If either array is not instantiated, you cannot complete the copy.
-            if ((pSource == null) || (pTarget == null))
-            {
-                throw new System.ArgumentException();
-            }
-
-            // Set the starting points in source and target for the copying.
-            byte* ps = pSource + sourceOffset;
-            byte* pt = pTarget + targetOffset;
-
-            // Copy the specified number of bytes from source to target.
-            for (UInt64 i = 0; i < count; i++)
-            {
-                *pt = *ps;
-                pt++;
-                ps++;
-            }
-        }
-
         /// <summary>
         /// Copy and read data from a byte array. This will copy the read buffer once into the read manager.
         /// </summary>
         /// <param name="buf">data source</param>
         /// <param name="len">data length</param>
         /// <returns>0 or error code</returns>
-        public unsafe Int32 ReadFrom(byte[] buf, UInt64 len)
+        public Int32 ReadFrom(byte[] buf, UInt64 len)
         {
             Int32 ret = 0;
             UInt64 offset = 0;
             while (offset < len) {
-                byte* alloc_buf;
+                IntPtr alloc_buf;
                 UInt64 alloc_len;
                 AllocForRead(len - offset, out alloc_buf, out alloc_len);
-                if (0 == alloc_len || null == alloc_buf) {
+                if (0 == alloc_len || 0 == alloc_buf.ToInt64()) {
                     return (Int32)error_code_t.EN_ECT_MALLOC;
                 }
 
-                // The following fixed statement pins the location of the buffer objects
-                // in memory so that they will not be moved by garbage collection.
-                fixed (byte* pBuf = buf)
+                // just a message or not a full message
+                if (alloc_len >= len - offset)
                 {
-                    // just a message or not a full message
-                    if (alloc_len >= len - offset)
-                    {
-                        // copy buf + offset, 
-                        CopyBytes(pBuf, offset, alloc_buf, 0, len - offset);
-                        ret = ReadDone(len - offset);
-                        offset = len;
-                    }
-                    else
-                    {
-                        CopyBytes(pBuf, offset, alloc_buf, 0, alloc_len);
-                        ret = ReadDone(alloc_len);
-                        offset += alloc_len;
-                    }
+                    Marshal.Copy(buf, (int)offset, alloc_buf, (int)(len - offset));
+                    ret = ReadDone(len - offset);
+                    offset = len;
+                }
+                else
+                {
+                    Marshal.Copy(buf, (int)offset, alloc_buf, (int)alloc_len);
+                    ret = ReadDone(alloc_len);
+                    offset += alloc_len;
                 }
 
                 if (ret < 0) {
