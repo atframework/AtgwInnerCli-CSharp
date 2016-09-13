@@ -107,6 +107,17 @@ namespace atframe.gw.inner
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
         private delegate Int32 libatgw_inner_v1_c_on_error_fn_t(IntPtr context, IntPtr file_name, Int32 line, Int32 error_code, IntPtr message);
 
+
+        private struct ProtoCallbacks {
+            public libatgw_inner_v1_c_on_write_start_fn_t OnWriteStart;
+            public libatgw_inner_v1_c_on_message_fn_t OnMessage;
+            public libatgw_inner_v1_c_on_init_new_session_fn_t OnInitNewSession;
+            public libatgw_inner_v1_c_on_init_reconnect_fn_t OnInitReconnect;
+            public libatgw_inner_v1_c_on_close_fn_t OnClose;
+            public libatgw_inner_v1_c_on_handshake_done_fn_t OnHandshakeDone;
+            public libatgw_inner_v1_c_on_handshake_done_fn_t OnHandshakeUpdate;
+            public libatgw_inner_v1_c_on_error_fn_t OnError;
+        }
         #endregion
 
         #region wrapper delegate types
@@ -120,6 +131,7 @@ namespace atframe.gw.inner
         #endregion
 
         static private readonly Dictionary<IntPtr, ClientProtocol> _binder_manager = new Dictionary<IntPtr, ClientProtocol>();
+        static private ProtoCallbacks _shared_callbacks = new ProtoCallbacks();
 
         #region member datas
         private IntPtr _native_protocol = new IntPtr(0);
@@ -142,36 +154,60 @@ namespace atframe.gw.inner
                     _native_protocol = libatgw_inner_v1_c_create();
                     {
                         // write
-                        IntPtr fn = Marshal.GetFunctionPointerForDelegate(new libatgw_inner_v1_c_on_write_start_fn_t(proto_on_write_start_fn));
-                        libatgw_inner_v1_c_gset_on_write_start_fn(fn);
+                        if (null == _shared_callbacks.OnWriteStart)
+                        {
+                            IntPtr fn = Marshal.GetFunctionPointerForDelegate(_shared_callbacks.OnWriteStart = new libatgw_inner_v1_c_on_write_start_fn_t(proto_on_write_start_fn));
+                            libatgw_inner_v1_c_gset_on_write_start_fn(fn);
+                        }
 
                         // message
-                        fn = Marshal.GetFunctionPointerForDelegate(new libatgw_inner_v1_c_on_message_fn_t(proto_on_message_fn));
-                        libatgw_inner_v1_c_gset_on_message_fn(fn);
+                        if (null == _shared_callbacks.OnMessage)
+                        {
+                            IntPtr fn = Marshal.GetFunctionPointerForDelegate(_shared_callbacks.OnMessage = new libatgw_inner_v1_c_on_message_fn_t(proto_on_message_fn));
+                            libatgw_inner_v1_c_gset_on_message_fn(fn);
+                        }
 
                         // new session
-                        fn = Marshal.GetFunctionPointerForDelegate(new libatgw_inner_v1_c_on_init_new_session_fn_t(proto_on_init_new_session_fn));
-                        libatgw_inner_v1_c_gset_on_init_new_session_fn(fn);
+                        if (null == _shared_callbacks.OnInitNewSession)
+                        {
+                            IntPtr fn = Marshal.GetFunctionPointerForDelegate(_shared_callbacks.OnInitNewSession = new libatgw_inner_v1_c_on_init_new_session_fn_t(proto_on_init_new_session_fn));
+                            libatgw_inner_v1_c_gset_on_init_new_session_fn(fn);
+                        }
 
                         // reconnect session
-                        fn = Marshal.GetFunctionPointerForDelegate(new libatgw_inner_v1_c_on_init_reconnect_fn_t(proto_on_init_reconnect_fn));
-                        libatgw_inner_v1_c_gset_on_init_reconnect_fn(fn);
+                        if (null == _shared_callbacks.OnInitReconnect)
+                        {
+                            IntPtr fn = Marshal.GetFunctionPointerForDelegate(_shared_callbacks.OnInitReconnect = new libatgw_inner_v1_c_on_init_reconnect_fn_t(proto_on_init_reconnect_fn));
+                            libatgw_inner_v1_c_gset_on_init_reconnect_fn(fn);
+                        }
 
                         // on close
-                        fn = Marshal.GetFunctionPointerForDelegate(new libatgw_inner_v1_c_on_close_fn_t(proto_on_close_fn));
-                        libatgw_inner_v1_c_gset_on_close_fn(fn);
+                        if (null == _shared_callbacks.OnClose)
+                        {
+                            IntPtr fn = Marshal.GetFunctionPointerForDelegate(_shared_callbacks.OnClose = new libatgw_inner_v1_c_on_close_fn_t(proto_on_close_fn));
+                            libatgw_inner_v1_c_gset_on_close_fn(fn);
+                        }
 
                         // on handshake done
-                        fn = Marshal.GetFunctionPointerForDelegate(new libatgw_inner_v1_c_on_handshake_done_fn_t(proto_on_handshake_done_fn));
-                        libatgw_inner_v1_c_gset_on_handshake_done_fn(fn);
+                        if (null == _shared_callbacks.OnHandshakeDone)
+                        {
+                            IntPtr fn = Marshal.GetFunctionPointerForDelegate(_shared_callbacks.OnHandshakeDone = new libatgw_inner_v1_c_on_handshake_done_fn_t(proto_on_handshake_done_fn));
+                            libatgw_inner_v1_c_gset_on_handshake_done_fn(fn);
+                        }
 
                         // on handshake update finished
-                        fn = Marshal.GetFunctionPointerForDelegate(new libatgw_inner_v1_c_on_handshake_done_fn_t(proto_on_handshake_update_fn));
-                        libatgw_inner_v1_c_gset_on_handshake_update_fn(fn);
+                        if (null == _shared_callbacks.OnHandshakeUpdate)
+                        {
+                            IntPtr fn = Marshal.GetFunctionPointerForDelegate(_shared_callbacks.OnHandshakeUpdate = new libatgw_inner_v1_c_on_handshake_done_fn_t(proto_on_handshake_update_fn));
+                            libatgw_inner_v1_c_gset_on_handshake_update_fn(fn);
+                        }
 
                         // on error
-                        fn = Marshal.GetFunctionPointerForDelegate(new libatgw_inner_v1_c_on_error_fn_t(proto_on_error_fn));
-                        libatgw_inner_v1_c_gset_on_error_fn(fn);
+                        if (null == _shared_callbacks.OnError)
+                        {
+                            IntPtr fn = Marshal.GetFunctionPointerForDelegate(_shared_callbacks.OnError = new libatgw_inner_v1_c_on_error_fn_t(proto_on_error_fn));
+                            libatgw_inner_v1_c_gset_on_error_fn(fn);
+                        }
                     }
 
                     return _native_protocol;
