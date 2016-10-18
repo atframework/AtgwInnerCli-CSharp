@@ -83,7 +83,7 @@ namespace atframe.gw.inner
         /// is_done should be set into 1 and call libatgw_inner_v1_c_write_done when all writings are finished.</param>
         /// <returns></returns>
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate Int32 libatgw_inner_v1_c_on_write_start_fn_t(IntPtr context, IntPtr buffer, UInt64 buffer_length, out Int32 is_done);
+        private delegate int libatgw_inner_v1_c_on_write_start_fn_t(IntPtr context, IntPtr buffer, ulong buffer_length, out int is_done);
 
         /// <summary>
         /// On message delegate function.
@@ -94,22 +94,22 @@ namespace atframe.gw.inner
         /// <param name="buffer_length">length of the message</param>
         /// <returns></returns>
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate Int32 libatgw_inner_v1_c_on_message_fn_t(IntPtr context, IntPtr buffer, UInt64 buffer_length);
+        private delegate int libatgw_inner_v1_c_on_message_fn_t(IntPtr context, IntPtr buffer, ulong buffer_length);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate Int32 libatgw_inner_v1_c_on_init_new_session_fn_t(IntPtr context, out UInt64 session_id);
+        private delegate int libatgw_inner_v1_c_on_init_new_session_fn_t(IntPtr context, out ulong session_id);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate Int32 libatgw_inner_v1_c_on_init_reconnect_fn_t(IntPtr context, UInt64 session_id);
+        private delegate int libatgw_inner_v1_c_on_init_reconnect_fn_t(IntPtr context, ulong session_id);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate Int32 libatgw_inner_v1_c_on_close_fn_t(IntPtr context, Int32 reason);
+        private delegate int libatgw_inner_v1_c_on_close_fn_t(IntPtr context, int reason);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate Int32 libatgw_inner_v1_c_on_handshake_done_fn_t(IntPtr context, Int32 status);
+        private delegate int libatgw_inner_v1_c_on_handshake_done_fn_t(IntPtr context, int status);
 
         [UnmanagedFunctionPointer(CallingConvention.Cdecl)]
-        private delegate Int32 libatgw_inner_v1_c_on_error_fn_t(IntPtr context, IntPtr file_name, Int32 line, Int32 error_code, IntPtr message);
+        private delegate int libatgw_inner_v1_c_on_error_fn_t(IntPtr context, IntPtr file_name, int line, int error_code, IntPtr message);
 
 
         private struct ProtoCallbacks {
@@ -125,13 +125,13 @@ namespace atframe.gw.inner
         #endregion
 
         #region wrapper delegate types
-        public delegate Int32 OnWriteDataFunction(ClientProtocol self, byte[] data, ref bool is_done);
-        public delegate Int32 OnReceiveMessageFunction(ClientProtocol self, byte[] data);
-        public delegate Int32 OnInitNewSessionFunction(ClientProtocol self, out UInt64 session_id);
-        public delegate Int32 OnInitReconnectSessionFunction(ClientProtocol self, UInt64 session_id);
-        public delegate Int32 OnCloseFunction(ClientProtocol self, Int32 reason);
-        public delegate Int32 OnHandshakeDoneFunction(ClientProtocol self, Int32 status);
-        public delegate Int32 OnErrorFunction(ClientProtocol self, String file_name, Int32 line, Int32 error_code, String message);
+        public delegate int OnWriteDataFunction(ClientProtocol self, byte[] data, ref bool is_done);
+        public delegate int OnReceiveMessageFunction(ClientProtocol self, byte[] data);
+        public delegate int OnInitNewSessionFunction(ClientProtocol self, out ulong session_id);
+        public delegate int OnInitReconnectSessionFunction(ClientProtocol self, ulong session_id);
+        public delegate int OnCloseFunction(ClientProtocol self, int reason);
+        public delegate int OnHandshakeDoneFunction(ClientProtocol self, int status);
+        public delegate int OnErrorFunction(ClientProtocol self, String file_name, int line, int error_code, String message);
         #endregion
 
         static private readonly Dictionary<IntPtr, ClientProtocol> _binder_manager = new Dictionary<IntPtr, ClientProtocol>();
@@ -312,13 +312,13 @@ namespace atframe.gw.inner
             }
         }
 
-        static public Int32 proto_on_write_start_fn(IntPtr context, IntPtr buffer, UInt64 buffer_length, out Int32 is_done)
+        static public int proto_on_write_start_fn(IntPtr context, IntPtr buffer, ulong buffer_length, out int is_done)
         {
             ClientProtocol self = GetClientProtocol(context);
             if (null == self)
             {
                 is_done = 1;
-                return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
+                return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
             if (null != self.OnWriteData)
@@ -326,21 +326,21 @@ namespace atframe.gw.inner
                 byte[] data_buffer = new byte[buffer_length];
                 Marshal.Copy(buffer, data_buffer, 0, (int)buffer_length);
                 bool is_done_b = false;
-                Int32 ret = self.OnWriteData(self, data_buffer, ref is_done_b);
+                int ret = self.OnWriteData(self, data_buffer, ref is_done_b);
                 is_done = is_done_b ? 1 : 0;
                 return ret;
             }
 
             is_done = 1;
-            return (Int32)error_code_t.EN_ECT_MISS_CALLBACKS;
+            return (int)error_code_t.EN_ECT_MISS_CALLBACKS;
         }
 
-        static public Int32 proto_on_message_fn(IntPtr context, IntPtr buffer, UInt64 buffer_length)
+        static public int proto_on_message_fn(IntPtr context, IntPtr buffer, ulong buffer_length)
         {
             ClientProtocol self = GetClientProtocol(context);
             if (null == self)
             {
-                return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
+                return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
             if (null != self.OnReceiveMessage)
@@ -353,13 +353,13 @@ namespace atframe.gw.inner
             return 0;
         }
 
-        static public Int32 proto_on_init_new_session_fn(IntPtr context, out UInt64 session_id)
+        static public int proto_on_init_new_session_fn(IntPtr context, out ulong session_id)
         {
             ClientProtocol self = GetClientProtocol(context);
             if (null == self)
             {
                 session_id = 0;
-                return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
+                return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
             if (null != self.OnInitNewSession)
@@ -369,15 +369,15 @@ namespace atframe.gw.inner
             }
 
             session_id = 0;
-            return (Int32)error_code_t.EN_ECT_MISS_CALLBACKS;
+            return (int)error_code_t.EN_ECT_MISS_CALLBACKS;
         }
 
-        static public Int32 proto_on_init_reconnect_fn(IntPtr context, UInt64 session_id)
+        static public int proto_on_init_reconnect_fn(IntPtr context, ulong session_id)
         {
             ClientProtocol self = GetClientProtocol(context);
             if (null == self)
             {
-                return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
+                return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
             if (null != self.OnInitReconnectSession)
@@ -385,15 +385,15 @@ namespace atframe.gw.inner
                 return self.OnInitReconnectSession(self, session_id);
             }
 
-            return (Int32)error_code_t.EN_ECT_MISS_CALLBACKS;
+            return (int)error_code_t.EN_ECT_MISS_CALLBACKS;
         }
 
-        static public Int32 proto_on_close_fn(IntPtr context, Int32 reason)
+        static public int proto_on_close_fn(IntPtr context, int reason)
         {
             ClientProtocol self = GetClientProtocol(context);
             if (null == self)
             {
-                return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
+                return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
             if (null != self.OnClose)
@@ -404,12 +404,12 @@ namespace atframe.gw.inner
             return 0;
         }
 
-        static public Int32 proto_on_handshake_done_fn(IntPtr context, Int32 status)
+        static public int proto_on_handshake_done_fn(IntPtr context, int status)
         {
             ClientProtocol self = GetClientProtocol(context);
             if (null == self)
             {
-                return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
+                return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
             if (null != self.OnHandshakeDone)
@@ -420,12 +420,12 @@ namespace atframe.gw.inner
             return 0;
         }
 
-        static public Int32 proto_on_handshake_update_fn(IntPtr context, Int32 status)
+        static public int proto_on_handshake_update_fn(IntPtr context, int status)
         {
             ClientProtocol self = GetClientProtocol(context);
             if (null == self)
             {
-                return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
+                return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
             if (null != self.OnHandshakeUpdate)
@@ -436,12 +436,12 @@ namespace atframe.gw.inner
             return 0;
         }
 
-        static public Int32 proto_on_error_fn(IntPtr context, IntPtr file_name, Int32 line, Int32 error_code, IntPtr message)
+        static public int proto_on_error_fn(IntPtr context, IntPtr file_name, int line, int error_code, IntPtr message)
         {
             ClientProtocol self = GetClientProtocol(context);
             if (null == self)
             {
-                return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
+                return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
             if (null != self.OnError)
@@ -476,7 +476,7 @@ namespace atframe.gw.inner
         /// <param name="max_size">max size</param>
         /// <param name="max_number">max message number</param>
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void libatgw_inner_v1_c_set_recv_buffer_limit(IntPtr context, UInt64 max_size, UInt64 max_number);
+        private static extern void libatgw_inner_v1_c_set_recv_buffer_limit(IntPtr context, ulong max_size, ulong max_number);
 
         /// <summary>
         /// Set send buffer limit in the protocol handle
@@ -485,7 +485,7 @@ namespace atframe.gw.inner
         /// <param name="max_size">max size</param>
         /// <param name="max_number">max message number</param>
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void libatgw_inner_v1_c_set_send_buffer_limit(IntPtr context, UInt64 max_size, UInt64 max_number);
+        private static extern void libatgw_inner_v1_c_set_send_buffer_limit(IntPtr context, ulong max_size, ulong max_number);
 
         /// <summary>
         /// Start a session
@@ -493,14 +493,14 @@ namespace atframe.gw.inner
         /// <param name="context"></param>
         /// <returns>0 or error code</returns>
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern Int32 libatgw_inner_v1_c_start_session(IntPtr context);
+        private static extern int libatgw_inner_v1_c_start_session(IntPtr context);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern Int32 libatgw_inner_v1_c_reconnect_session(IntPtr context, UInt64 sessios_id, Int32 crypt_type,
-                                                                           byte[] secret_buf, UInt64 secret_len, UInt32 keybits);
+        private static extern int libatgw_inner_v1_c_reconnect_session(IntPtr context, ulong sessios_id, int crypt_type,
+                                                                           byte[] secret_buf, ulong secret_len, uint keybits);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void libatgw_inner_v1_c_get_info(IntPtr context, StringBuilder info_str, UInt64 info_len);
+        private static extern void libatgw_inner_v1_c_get_info(IntPtr context, StringBuilder info_str, ulong info_len);
 
         /// <summary>
         /// Set private data of specify protocol context
@@ -519,59 +519,59 @@ namespace atframe.gw.inner
         private static extern IntPtr libatgw_inner_v1_c_get_private_data(IntPtr context);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern UInt64 libatgw_inner_v1_c_get_session_id(IntPtr context);
+        private static extern ulong libatgw_inner_v1_c_get_session_id(IntPtr context);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern Int32 libatgw_inner_v1_c_get_crypt_type(IntPtr context);
+        private static extern int libatgw_inner_v1_c_get_crypt_type(IntPtr context);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern UInt64 libatgw_inner_v1_c_get_crypt_secret_size(IntPtr context);
+        private static extern ulong libatgw_inner_v1_c_get_crypt_secret_size(IntPtr context);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern UInt64 libatgw_inner_v1_c_copy_crypt_secret(IntPtr context, byte[] secret, UInt64 available_size);
+        private static extern ulong libatgw_inner_v1_c_copy_crypt_secret(IntPtr context, byte[] secret, ulong available_size);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern UInt32 libatgw_inner_v1_c_get_crypt_keybits(IntPtr context);
+        private static extern uint libatgw_inner_v1_c_get_crypt_keybits(IntPtr context);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void libatgw_inner_v1_c_read_alloc(IntPtr context, UInt64 suggested_size, out IntPtr out_buf,
-                                                                 out UInt64 out_len);
+        private static extern void libatgw_inner_v1_c_read_alloc(IntPtr context, ulong suggested_size, out IntPtr out_buf,
+                                                                 out ulong out_len);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern void libatgw_inner_v1_c_read(IntPtr context, Int32 ssz, IntPtr buff, UInt64 len, out Int32 errcode);
+        private static extern void libatgw_inner_v1_c_read(IntPtr context, int ssz, IntPtr buff, ulong len, out int errcode);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern Int32 libatgw_inner_v1_c_write_done(IntPtr context, Int32 status);
+        private static extern int libatgw_inner_v1_c_write_done(IntPtr context, int status);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern Int32 libatgw_inner_v1_c_post_msg(IntPtr context, byte[] out_buf, UInt64 out_len);
+        private static extern int libatgw_inner_v1_c_post_msg(IntPtr context, byte[] out_buf, ulong out_len);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern Int32 libatgw_inner_v1_c_send_ping(IntPtr context);
+        private static extern int libatgw_inner_v1_c_send_ping(IntPtr context);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern Int64 libatgw_inner_v1_c_get_ping_delta(IntPtr context);
+        private static extern long libatgw_inner_v1_c_get_ping_delta(IntPtr context);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern Int32 libatgw_inner_v1_c_close(IntPtr context, Int32 reason);
+        private static extern int libatgw_inner_v1_c_close(IntPtr context, int reason);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern Int32 libatgw_inner_v1_c_is_closing(IntPtr context);
+        private static extern int libatgw_inner_v1_c_is_closing(IntPtr context);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern Int32 libatgw_inner_v1_c_is_closed(IntPtr context);
+        private static extern int libatgw_inner_v1_c_is_closed(IntPtr context);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern Int32 libatgw_inner_v1_c_is_handshake_updating(IntPtr context);
+        private static extern int libatgw_inner_v1_c_is_handshake_updating(IntPtr context);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern Int32 libatgw_inner_v1_c_is_handshake_done(IntPtr context);
+        private static extern int libatgw_inner_v1_c_is_handshake_done(IntPtr context);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern Int32 libatgw_inner_v1_c_is_writing(IntPtr context);
+        private static extern int libatgw_inner_v1_c_is_writing(IntPtr context);
 
         [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
-        private static extern Int32 libatgw_inner_v1_c_is_in_callback(IntPtr context);
+        private static extern int libatgw_inner_v1_c_is_in_callback(IntPtr context);
 
         #endregion
 
@@ -589,12 +589,12 @@ namespace atframe.gw.inner
                 }
 
                 StringBuilder sb = new StringBuilder(4096);
-                libatgw_inner_v1_c_get_info(native, sb, (UInt64)sb.Capacity);
+                libatgw_inner_v1_c_get_info(native, sb, (ulong)sb.Capacity);
                 return sb.ToString();
             }
         }
 
-        public void SetReceiveBufferLimit(UInt64 max_size, UInt64 max_number)
+        public void SetReceiveBufferLimit(ulong max_size, ulong max_number)
         {
             IntPtr native = NativeProtocol;
             if (0 == native.ToInt64())
@@ -605,7 +605,7 @@ namespace atframe.gw.inner
             libatgw_inner_v1_c_set_recv_buffer_limit(native, max_size, max_number);
         }
 
-        public void SetSendBufferLimit(UInt64 max_size, UInt64 max_number)
+        public void SetSendBufferLimit(ulong max_size, ulong max_number)
         {
             IntPtr native = NativeProtocol;
             if (0 == native.ToInt64())
@@ -616,29 +616,29 @@ namespace atframe.gw.inner
             libatgw_inner_v1_c_set_send_buffer_limit(native, max_size, max_number);
         }
 
-        public Int32 StartSession()
+        public int StartSession()
         {
             IntPtr native = NativeProtocol;
             if (0 == native.ToInt64())
             {
-                return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
+                return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
             return libatgw_inner_v1_c_start_session(native);
         }
 
-        public Int32 ReconnectSession(UInt64 session_id, Int32 crypt_type, byte[] secret, UInt32 keybits)
+        public int ReconnectSession(ulong session_id, int crypt_type, byte[] secret, uint keybits)
         {
             IntPtr native = NativeProtocol;
             if (0 == native.ToInt64())
             {
-                return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
+                return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
-            return libatgw_inner_v1_c_reconnect_session(native, session_id, crypt_type, secret, (UInt64)secret.Length, keybits);
+            return libatgw_inner_v1_c_reconnect_session(native, session_id, crypt_type, secret, (ulong)secret.Length, keybits);
         }
 
-        public UInt64 SessionID
+        public ulong SessionID
         {
             get
             {
@@ -652,7 +652,7 @@ namespace atframe.gw.inner
             }
         }
 
-        public Int32 CryptType
+        public int CryptType
         {
             get
             {
@@ -676,14 +676,14 @@ namespace atframe.gw.inner
                     return new byte[0];
                 }
 
-                UInt64 secret_len = libatgw_inner_v1_c_get_crypt_secret_size(native);
+                ulong secret_len = libatgw_inner_v1_c_get_crypt_secret_size(native);
                 byte[] ret = new byte[secret_len];
                 libatgw_inner_v1_c_copy_crypt_secret(native, ret, secret_len);
                 return ret;
             }
         }
 
-        public UInt32 Keybits
+        public uint Keybits
         {
             get
             {
@@ -703,7 +703,7 @@ namespace atframe.gw.inner
         /// <param name="suggest_size">suggest size to allocate, it's 64KB in libuv</param>
         /// <param name="out_buf">allocated buffer address</param>
         /// <param name="len">allocated buffer length</param>
-        public void AllocForRead(UInt64 suggest_size, out IntPtr out_buf, out UInt64 len)
+        public void AllocForRead(ulong suggest_size, out IntPtr out_buf, out ulong len)
         {
             IntPtr native = NativeProtocol;
             if (0 == native.ToInt64())
@@ -722,12 +722,12 @@ namespace atframe.gw.inner
         /// </summary>
         /// <param name="read_sz">lengtn of read data. read buffer manager will cost len bytes and try to dispatch message. must be smaller than len from OnReadAlloc()</param>
         /// <returns>0 or error code</returns>
-        public Int32 ReadDone(UInt64 read_sz)
+        public int ReadDone(ulong read_sz)
         {
             IntPtr native = NativeProtocol;
             if (0 == native.ToInt64())
             {
-                return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
+                return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
             if (0 == read_sz)
@@ -735,8 +735,8 @@ namespace atframe.gw.inner
                 return 0;
             }
 
-            Int32 ret = 0;
-            libatgw_inner_v1_c_read(native, (Int32)read_sz, _last_alloc, read_sz, out ret);
+            int ret = 0;
+            libatgw_inner_v1_c_read(native, (int)read_sz, _last_alloc, read_sz, out ret);
             return ret;
         }
 
@@ -746,16 +746,16 @@ namespace atframe.gw.inner
         /// <param name="buf">data source</param>
         /// <param name="len">data length</param>
         /// <returns>0 or error code</returns>
-        public Int32 ReadFrom(byte[] buf, UInt64 len)
+        public int ReadFrom(byte[] buf, ulong len)
         {
-            Int32 ret = 0;
-            UInt64 offset = 0;
+            int ret = 0;
+            ulong offset = 0;
             while (offset < len) {
                 IntPtr alloc_buf;
-                UInt64 alloc_len;
+                ulong alloc_len;
                 AllocForRead(len - offset, out alloc_buf, out alloc_len);
                 if (0 == alloc_len || 0 == alloc_buf.ToInt64()) {
-                    return (Int32)error_code_t.EN_ECT_MALLOC;
+                    return (int)error_code_t.EN_ECT_MALLOC;
                 }
 
                 // just a message or not a full message
@@ -785,23 +785,23 @@ namespace atframe.gw.inner
         /// </summary>
         /// <param name="status">0 or error code</param>
         /// <returns></returns>
-        public Int32 NotifyWriteDone(Int32 status)
+        public int NotifyWriteDone(int status)
         {
             IntPtr native = NativeProtocol;
             if (0 == native.ToInt64())
             {
-                return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
+                return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
             return libatgw_inner_v1_c_write_done(native, status);
         }
 
-        public Int32 PostMessage(byte[] buf)
+        public int PostMessage(byte[] buf)
         {
             IntPtr native = NativeProtocol;
             if (0 == native.ToInt64())
             {
-                return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
+                return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
             if (null == buf || 0 == buf.Length)
@@ -809,21 +809,21 @@ namespace atframe.gw.inner
                 return 0;
             }
 
-            return libatgw_inner_v1_c_post_msg(native, buf, (UInt64)buf.Length);
+            return libatgw_inner_v1_c_post_msg(native, buf, (ulong)buf.Length);
         }
 
-        public Int32 SendPing()
+        public int SendPing()
         {
             IntPtr native = NativeProtocol;
             if (0 == native.ToInt64())
             {
-                return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
+                return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
             return libatgw_inner_v1_c_send_ping(native);
         }
 
-        public Int64 LastPingDelta
+        public long LastPingDelta
         {
             get
             {
@@ -837,12 +837,12 @@ namespace atframe.gw.inner
             }
         }
 
-        public Int32 Close(Int32 reason = (Int32)close_reason_t.EN_CRT_UNKNOWN)
+        public int Close(int reason = (int)close_reason_t.EN_CRT_UNKNOWN)
         {
             IntPtr native = NativeProtocol;
             if (0 == native.ToInt64())
             {
-                return (Int32)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
+                return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
             return libatgw_inner_v1_c_close(native, reason);

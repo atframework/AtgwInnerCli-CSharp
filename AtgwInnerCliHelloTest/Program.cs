@@ -40,15 +40,15 @@ namespace AtgwInnerCliHelloTest
                 return 0;
             };
 
-            proto.OnClose = (ClientProtocol self, Int32 reason) =>
+            proto.OnClose = (ClientProtocol self, int reason) =>
             {
                 Console.WriteLine(String.Format("[Notice]: client closed, reason: {0}", reason));
-                exit = (Int32)ClientProtocol.close_reason_t.EN_CRT_RECONNECT_BOUND <= reason;
+                exit = (int)ClientProtocol.close_reason_t.EN_CRT_RECONNECT_BOUND <= reason;
                 sock.Close();
                 return 0;
             };
 
-            proto.OnHandshakeDone = (ClientProtocol self, Int32 status) =>
+            proto.OnHandshakeDone = (ClientProtocol self, int status) =>
             {
                 Console.WriteLine(String.Format("[Info]: handshake done, status {0}\n{1}", status,
                     self.Information
@@ -57,7 +57,7 @@ namespace AtgwInnerCliHelloTest
                 return 0;
             };
 
-            proto.OnHandshakeUpdate = (ClientProtocol self, Int32 status) =>
+            proto.OnHandshakeUpdate = (ClientProtocol self, int status) =>
             {
                 Console.WriteLine(String.Format("[Info]: handshake updated, status {0}\n{1}", status,
                     self.Information
@@ -66,7 +66,7 @@ namespace AtgwInnerCliHelloTest
                 return 0;
             };
 
-            proto.OnError = (ClientProtocol self, String file_name, Int32 line, Int32 error_code, String message) =>
+            proto.OnError = (ClientProtocol self, String file_name, int line, int error_code, String message) =>
             {
                 Console.WriteLine(String.Format("[Error]: {0}:{1} error code: {2}, message: {3}", file_name, line, error_code, message));
                 return 0;
@@ -105,7 +105,7 @@ namespace AtgwInnerCliHelloTest
                 return;
             }
 
-            UInt64 seq = 0;
+            ulong seq = 0;
             while (true)
             {
                 if (exit)
@@ -118,9 +118,9 @@ namespace AtgwInnerCliHelloTest
                     try
                     {
                         byte[] secret = proto.Secret;
-                        UInt64 session_id = proto.SessionID;
-                        UInt32 keybits = proto.Keybits;
-                        Int32 crypt_type = proto.CryptType;
+                        ulong session_id = proto.SessionID;
+                        uint keybits = proto.Keybits;
+                        int crypt_type = proto.CryptType;
 
                         sock = new TcpClient();
                         proto = CreateClient(sock);
@@ -153,7 +153,7 @@ namespace AtgwInnerCliHelloTest
                     int nread = sock.Client.Receive(buffer);
                     if (nread > 0)
                     {
-                        Int32 res = proto.ReadFrom(buffer, (UInt64)nread);
+                        int res = proto.ReadFrom(buffer, (ulong)nread);
                         if (res < 0) {
                             sock.Close();
                             sock = null;
