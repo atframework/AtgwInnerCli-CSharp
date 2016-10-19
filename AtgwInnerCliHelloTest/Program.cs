@@ -66,7 +66,7 @@ namespace AtgwInnerCliHelloTest
                 return 0;
             };
 
-            proto.OnError = (ClientProtocol self, String file_name, int line, int error_code, String message) =>
+            proto.OnError = (ClientProtocol self, string file_name, int line, int error_code, string message) =>
             {
                 Console.WriteLine(String.Format("[Error]: {0}:{1} error code: {2}, message: {3}", file_name, line, error_code, message));
                 return 0;
@@ -183,7 +183,7 @@ namespace AtgwInnerCliHelloTest
 
                 if (is_send && proto.IsHandshakeDone && !proto.IsClosing)
                 {
-                    String send_data = String.Format("session 0x{0:X0000000000000000} send index: {1}", proto.SessionID, ++seq);
+                    string send_data = String.Format("session 0x{0:X0000000000000000} send index: {1}", proto.SessionID, ++seq);
                     proto.PostMessage(System.Text.Encoding.UTF8.GetBytes(send_data));
                     Console.WriteLine(String.Format("[Info]: send {0}", send_data));
                 }

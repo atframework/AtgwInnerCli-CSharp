@@ -131,7 +131,7 @@ namespace atframe.gw.inner
         public delegate int OnInitReconnectSessionFunction(ClientProtocol self, ulong session_id);
         public delegate int OnCloseFunction(ClientProtocol self, int reason);
         public delegate int OnHandshakeDoneFunction(ClientProtocol self, int status);
-        public delegate int OnErrorFunction(ClientProtocol self, String file_name, int line, int error_code, String message);
+        public delegate int OnErrorFunction(ClientProtocol self, string file_name, int line, int error_code, string message);
         #endregion
 
         static private readonly Dictionary<IntPtr, ClientProtocol> _binder_manager = new Dictionary<IntPtr, ClientProtocol>();
@@ -578,7 +578,7 @@ namespace atframe.gw.inner
         /// <summary>
         /// Get imformation of protocol handle, it cost a lot and should not be called frequently.
         /// </summary>
-        public String Information
+        public string Information
         {
             get
             {
@@ -701,20 +701,20 @@ namespace atframe.gw.inner
         /// Allocate buffer block to store data
         /// </summary>
         /// <param name="suggest_size">suggest size to allocate, it's 64KB in libuv</param>
-        /// <param name="out_buf">allocated buffer address</param>
         /// <param name="len">allocated buffer length</param>
-        public void AllocForRead(ulong suggest_size, out IntPtr out_buf, out ulong len)
+        /// <returns>allocated buffer address, IntPtr(0) if failed</returns>
+        public IntPtr AllocForRead(ulong suggest_size, out ulong len)
         {
             IntPtr native = NativeProtocol;
             if (0 == native.ToInt64())
             {
-                _last_alloc = out_buf = new IntPtr(0);
+                _last_alloc = new IntPtr(0);
                 len = 0;
-                return;
+                return _last_alloc;
             }
 
             libatgw_inner_v1_c_read_alloc(native, suggest_size, out _last_alloc, out len);
-            out_buf = _last_alloc;
+            return _last_alloc;
         }
 
         /// <summary>
@@ -753,7 +753,7 @@ namespace atframe.gw.inner
             while (offset < len) {
                 IntPtr alloc_buf;
                 ulong alloc_len;
-                AllocForRead(len - offset, out alloc_buf, out alloc_len);
+                alloc_buf = AllocForRead(len - offset, out alloc_len);
                 if (0 == alloc_len || 0 == alloc_buf.ToInt64()) {
                     return (int)error_code_t.EN_ECT_MALLOC;
                 }
