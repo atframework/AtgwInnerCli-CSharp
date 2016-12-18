@@ -26,7 +26,13 @@ namespace AtgwInnerCliHelloTest
                 catch (Exception e)
                 {
                     Console.WriteLine(e.ToString());
-                    sock.Client.Close();
+                    if (null != sock.Client)
+                    {
+                        sock.Client.Close();
+                    }
+
+                    proto.Close((int)ClientProtocol.close_reason_t.EN_CRT_RESET);
+
                     sock = null;
                 }
                 is_done = true;
@@ -43,7 +49,7 @@ namespace AtgwInnerCliHelloTest
             proto.OnClose = (ClientProtocol self, int reason) =>
             {
                 Console.WriteLine(String.Format("[Notice]: client closed, reason: {0}", reason));
-                exit = (int)ClientProtocol.close_reason_t.EN_CRT_RECONNECT_BOUND <= reason;
+                exit = reason < 0 || reason >= (int)ClientProtocol.close_reason_t.EN_CRT_RECONNECT_BOUND;
                 sock.Close();
                 return 0;
             };
