@@ -112,7 +112,8 @@ namespace atframe.gw.inner
         private delegate int libatgw_inner_v1_c_on_error_fn_t(IntPtr context, IntPtr file_name, int line, int error_code, IntPtr message);
 
 
-        private struct ProtoCallbacks {
+        private struct ProtoCallbacks
+        {
             public libatgw_inner_v1_c_on_write_start_fn_t OnWriteStart;
             public libatgw_inner_v1_c_on_message_fn_t OnMessage;
             public libatgw_inner_v1_c_on_init_new_session_fn_t OnInitNewSession;
@@ -149,7 +150,7 @@ namespace atframe.gw.inner
         public OnHandshakeDoneFunction OnHandshakeUpdate = null;
         public OnErrorFunction OnError = null;
         #endregion
-        protected IntPtr NativeProtocol
+        public IntPtr NativeProtocol
         {
             get
             {
@@ -242,61 +243,67 @@ namespace atframe.gw.inner
             }
         }
 
+#if !UNITY_EDITOR && UNITY_IPHONE
+        const string LIBNAME = "__Internal";
+#else
+        const string LIBNAME = "libatgw_inner_v1_c";
+#endif
+
         #region delegate setter
         /// <summary>
         /// Set libatgw_inner_v1_c_on_write_start_fn_t of global callback set.
         /// </summary>
         /// <param name="fn">delegate function of type libatgw_inner_v1_c_on_write_start_fn_t</param>
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern void libatgw_inner_v1_c_gset_on_write_start_fn(IntPtr fn);
 
         /// <summary>
         /// Set libatgw_inner_v1_c_on_message_fn_t of global callback set.
         /// </summary>
         /// <param name="fn">delegate function of type libatgw_inner_v1_c_on_message_fn_t</param>
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern void libatgw_inner_v1_c_gset_on_message_fn(IntPtr fn);
 
         /// <summary>
         /// Set libatgw_inner_v1_c_on_init_new_session_fn_t function of global callback set
         /// </summary>
         /// <param name="fn">delegate function of type libatgw_inner_v1_c_on_init_new_session_fn_t</param>
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern void libatgw_inner_v1_c_gset_on_init_new_session_fn(IntPtr fn);
 
         /// <summary>
         /// Set libatgw_inner_v1_c_on_init_reconnect_fn_t function of global callback set
         /// </summary>
         /// <param name="fn">delegate function of type libatgw_inner_v1_c_on_init_reconnect_fn_t</param>
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern void libatgw_inner_v1_c_gset_on_init_reconnect_fn(IntPtr fn);
 
         /// <summary>
         /// Set libatgw_inner_v1_c_on_close_fn_t function of global callback set
         /// </summary>
         /// <param name="fn">delegate function of type libatgw_inner_v1_c_on_close_fn_t</param>
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern void libatgw_inner_v1_c_gset_on_close_fn(IntPtr fn);
 
         /// <summary>
         /// Set libatgw_inner_v1_c_on_handshake_done_fn_t function of global callback set
         /// </summary>
         /// <param name="fn">delegate function of type libatgw_inner_v1_c_on_handshake_done_fn_t</param>
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern void libatgw_inner_v1_c_gset_on_handshake_done_fn(IntPtr fn);
 
         /// <summary>
         /// Set libatgw_inner_v1_c_on_handshake_done_fn_t function of global callback set
         /// </summary>
         /// <param name="fn">delegate function of type libatgw_inner_v1_c_on_handshake_done_fn_t</param>
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern void libatgw_inner_v1_c_gset_on_handshake_update_fn(IntPtr fn);
 
         /// <summary>
         /// Set libatgw_inner_v1_c_on_error_fn_t function of global callback set
         /// </summary>
         /// <param name="fn">delegate function of type libatgw_inner_v1_c_on_error_fn_t</param>
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern void libatgw_inner_v1_c_gset_on_error_fn(IntPtr fn);
 
         #endregion
@@ -459,14 +466,14 @@ namespace atframe.gw.inner
         /// Create a inner protocol context for atgateway
         /// </summary>
         /// <returns>protocol context for atgateway, null if failed</returns>
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr libatgw_inner_v1_c_create();
 
         /// <summary>
         /// Destroy a inner protocol context for atgateway
         /// </summary>
         /// <param name="ptr">protocol context for atgateway</param>
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern void libatgw_inner_v1_c_destroy(IntPtr ptr);
 
         /// <summary>
@@ -475,7 +482,7 @@ namespace atframe.gw.inner
         /// <param name="context"></param>
         /// <param name="max_size">max size</param>
         /// <param name="max_number">max message number</param>
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern void libatgw_inner_v1_c_set_recv_buffer_limit(IntPtr context, ulong max_size, ulong max_number);
 
         /// <summary>
@@ -484,7 +491,7 @@ namespace atframe.gw.inner
         /// <param name="context"></param>
         /// <param name="max_size">max size</param>
         /// <param name="max_number">max message number</param>
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern void libatgw_inner_v1_c_set_send_buffer_limit(IntPtr context, ulong max_size, ulong max_number);
 
         /// <summary>
@@ -492,14 +499,14 @@ namespace atframe.gw.inner
         /// </summary>
         /// <param name="context"></param>
         /// <returns>0 or error code</returns>
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern int libatgw_inner_v1_c_start_session(IntPtr context);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern int libatgw_inner_v1_c_reconnect_session(IntPtr context, ulong sessios_id, int crypt_type,
                                                                            byte[] secret_buf, ulong secret_len, uint keybits);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern void libatgw_inner_v1_c_get_info(IntPtr context, StringBuilder info_str, ulong info_len);
 
         /// <summary>
@@ -507,7 +514,7 @@ namespace atframe.gw.inner
         /// </summary>
         /// <param name="context">protocol context</param>
         /// <param name="data">private data</param>
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern void libatgw_inner_v1_c_set_private_data(IntPtr context, IntPtr data);
 
         /// <summary>
@@ -515,62 +522,62 @@ namespace atframe.gw.inner
         /// </summary>
         /// <param name="context"></param>
         /// <returns>private data</returns>
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr libatgw_inner_v1_c_get_private_data(IntPtr context);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern ulong libatgw_inner_v1_c_get_session_id(IntPtr context);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern int libatgw_inner_v1_c_get_crypt_type(IntPtr context);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern ulong libatgw_inner_v1_c_get_crypt_secret_size(IntPtr context);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern ulong libatgw_inner_v1_c_copy_crypt_secret(IntPtr context, byte[] secret, ulong available_size);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern uint libatgw_inner_v1_c_get_crypt_keybits(IntPtr context);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern void libatgw_inner_v1_c_read_alloc(IntPtr context, ulong suggested_size, out IntPtr out_buf,
                                                                  out ulong out_len);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern void libatgw_inner_v1_c_read(IntPtr context, int ssz, IntPtr buff, ulong len, out int errcode);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern int libatgw_inner_v1_c_write_done(IntPtr context, int status);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern int libatgw_inner_v1_c_post_msg(IntPtr context, byte[] out_buf, ulong out_len);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern int libatgw_inner_v1_c_send_ping(IntPtr context);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern long libatgw_inner_v1_c_get_ping_delta(IntPtr context);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern int libatgw_inner_v1_c_close(IntPtr context, int reason);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern int libatgw_inner_v1_c_is_closing(IntPtr context);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern int libatgw_inner_v1_c_is_closed(IntPtr context);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern int libatgw_inner_v1_c_is_handshake_updating(IntPtr context);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern int libatgw_inner_v1_c_is_handshake_done(IntPtr context);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern int libatgw_inner_v1_c_is_writing(IntPtr context);
 
-        [DllImport("libatgw_inner_v1_c", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern int libatgw_inner_v1_c_is_in_callback(IntPtr context);
 
         #endregion
@@ -750,11 +757,13 @@ namespace atframe.gw.inner
         {
             int ret = 0;
             ulong offset = 0;
-            while (offset < len) {
+            while (offset < len)
+            {
                 IntPtr alloc_buf;
                 ulong alloc_len;
                 alloc_buf = AllocForRead(len - offset, out alloc_len);
-                if (0 == alloc_len || 0 == alloc_buf.ToInt64()) {
+                if (0 == alloc_len || 0 == alloc_buf.ToInt64())
+                {
                     return (int)error_code_t.EN_ECT_MALLOC;
                 }
 
@@ -772,7 +781,8 @@ namespace atframe.gw.inner
                     offset += alloc_len;
                 }
 
-                if (ret < 0) {
+                if (ret < 0)
+                {
                     return ret;
                 }
             }
