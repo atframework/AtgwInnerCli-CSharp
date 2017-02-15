@@ -230,16 +230,19 @@ namespace atframe.gw.inner
             }
             else
             {
-                _binder_manager.Add(NativeProtocol, this);
+                lock (_binder_manager) {
+                    _binder_manager.Add(NativeProtocol, this);
+                }
             }
         }
 
         ~ClientProtocol()
         {
-            if (null != _native_protocol)
-            {
+            if (null != _native_protocol) {
                 libatgw_inner_v1_c_destroy(_native_protocol);
-                _binder_manager.Remove(_native_protocol);
+                lock (_binder_manager) {
+                    _binder_manager.Remove(_native_protocol);
+                }
             }
         }
 
