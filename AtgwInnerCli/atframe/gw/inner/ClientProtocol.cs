@@ -252,9 +252,9 @@ namespace atframe.gw.inner
 #if !UNITY_EDITOR && UNITY_IPHONE
         const string LIBNAME = "__Internal";
 #elif UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_XBOXONE || UNITY_WP_8_1 || UNITY_WINRT
-        const string LIBNAME = "libatgw_inner_v1_c";
+        const string LIBNAME = "libatgw_inner_v1_c.dll";
 #else
-        const string LIBNAME = "atgw_inner_v1_c";
+        const string LIBNAME = "libatgw_inner_v1_c.so";
 #endif
 
         #region delegate setter
