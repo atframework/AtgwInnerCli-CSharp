@@ -230,7 +230,8 @@ namespace atframe.gw.inner
             }
             else
             {
-                lock (_binder_manager) {
+                lock (_binder_manager)
+                {
                     _binder_manager.Add(NativeProtocol, this);
                 }
             }
@@ -238,9 +239,11 @@ namespace atframe.gw.inner
 
         ~ClientProtocol()
         {
-            if (null != _native_protocol) {
+            if (null != _native_protocol)
+            {
                 libatgw_inner_v1_c_destroy(_native_protocol);
-                lock (_binder_manager) {
+                lock (_binder_manager)
+                {
                     _binder_manager.Remove(_native_protocol);
                 }
             }
@@ -248,8 +251,10 @@ namespace atframe.gw.inner
 
 #if !UNITY_EDITOR && UNITY_IPHONE
         const string LIBNAME = "__Internal";
-#else
+#elif UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_XBOXONE || UNITY_WP_8_1 || UNITY_WINRT
         const string LIBNAME = "libatgw_inner_v1_c";
+#else
+        const string LIBNAME = "atgw_inner_v1_c";
 #endif
 
         #region delegate setter
