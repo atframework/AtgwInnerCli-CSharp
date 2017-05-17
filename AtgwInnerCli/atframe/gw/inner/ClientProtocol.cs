@@ -254,7 +254,7 @@ namespace atframe.gw.inner
 #elif UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_XBOXONE || UNITY_WP_8_1 || UNITY_WINRT
         const string LIBNAME = "libatgw_inner_v1_c.dll";
 #else
-        const string LIBNAME = "libatgw_inner_v1_c.so";
+        const string LIBNAME = "atgw_inner_v1_c";
 #endif
 
         #region delegate setter
