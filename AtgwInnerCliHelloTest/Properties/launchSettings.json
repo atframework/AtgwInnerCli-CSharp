@@ -2,7 +2,7 @@
   "profiles": {
     "AtgwInnerCliHelloTest": {
       "commandName": "Project",
-      "commandLineArgs": "127.0.0.1 9101"
+      "commandLineArgs": "127.0.0.1 9101 aes-256-cfb"
     }
   }
 }
