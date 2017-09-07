@@ -41,6 +41,7 @@ namespace atframe.gw.inner
             EN_ECT_MALLOC = -1024,
             EN_ECT_CRYPT_ALREADY_INITED = -1101,
             EN_ECT_CRYPT_VERIFY = -1102,
+            EN_ECT_CRYPT_OPERATION = -1103,
             EN_ECT_CRYPT_READ_DHPARAM_FILE = -1211,
             EN_ECT_CRYPT_INIT_DHPARAM = -1212,
             EN_ECT_CRYPT_READ_RSA_PUBKEY = -1221,
@@ -139,8 +140,8 @@ namespace atframe.gw.inner
         static private ProtoCallbacks _shared_callbacks = new ProtoCallbacks();
 
         #region member datas
-        private IntPtr _native_protocol = new IntPtr(0);
-        private IntPtr _last_alloc = new IntPtr(0);
+        private IntPtr _native_protocol = IntPtr.Zero;
+        private IntPtr _last_alloc = IntPtr.Zero;
         public OnWriteDataFunction OnWriteData = null;
         public OnReceiveMessageFunction OnReceiveMessage = null;
         public OnInitNewSessionFunction OnInitNewSession = null;
@@ -154,7 +155,7 @@ namespace atframe.gw.inner
         {
             get
             {
-                if (0 == _native_protocol.ToInt64())
+                if (IntPtr.Zero == _native_protocol)
                 {
                     _native_protocol = libatgw_inner_v1_c_create();
                     {
@@ -224,7 +225,7 @@ namespace atframe.gw.inner
 
         public ClientProtocol()
         {
-            if (0 == NativeProtocol.ToInt64())
+            if (IntPtr.Zero == NativeProtocol)
             {
                 throw new System.OutOfMemoryException("Can not create native atgateway inner protocol v1 object");
             }
@@ -251,13 +252,30 @@ namespace atframe.gw.inner
 
 #if !UNITY_EDITOR && UNITY_IPHONE
         const string LIBNAME = "__Internal";
-#elif UNITY_STANDALONE_WIN || UNITY_EDITOR_WIN || UNITY_XBOXONE || UNITY_WP_8_1 || UNITY_WINRT
-        const string LIBNAME = "libatgw_inner_v1_c";
 #else
         const string LIBNAME = "atgw_inner_v1_c";
 #endif
+        #region golbal native functions
+        /// <summary>
+        /// Initialize global algorithms of cipher and etc.
+        /// </summary>
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void libatgw_inner_v1_c_global_init_algorithms();
 
-        #region delegate setter
+        /// <summary>
+        /// Get available crypt type number
+        /// </summary>
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
+        private static extern ulong libatgw_inner_v1_c_global_get_crypt_size();
+
+        /// <summary>
+        /// Get available crypt type name at idx
+        /// </summary>
+        /// <param name="idx">index</param>
+        /// <returns>crypt type name</returns>
+        [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr libatgw_inner_v1_c_global_get_crypt_name(ulong idx);
+
         /// <summary>
         /// Set libatgw_inner_v1_c_on_write_start_fn_t of global callback set.
         /// </summary>
@@ -508,11 +526,11 @@ namespace atframe.gw.inner
         /// <param name="context"></param>
         /// <returns>0 or error code</returns>
         [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
-        private static extern int libatgw_inner_v1_c_start_session(IntPtr context);
+        private static extern int libatgw_inner_v1_c_start_session(IntPtr context, string crypt_type);
 
         [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
-        private static extern int libatgw_inner_v1_c_reconnect_session(IntPtr context, ulong sessios_id, int crypt_type,
-                                                                           byte[] secret_buf, ulong secret_len, uint keybits);
+        private static extern int libatgw_inner_v1_c_reconnect_session(IntPtr context, ulong sessios_id, string crypt_type,
+                                                                           byte[] secret_buf, ulong secret_len);
 
         [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern void libatgw_inner_v1_c_get_info(IntPtr context, StringBuilder info_str, ulong info_len);
@@ -537,7 +555,7 @@ namespace atframe.gw.inner
         private static extern ulong libatgw_inner_v1_c_get_session_id(IntPtr context);
 
         [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
-        private static extern int libatgw_inner_v1_c_get_crypt_type(IntPtr context);
+        private static extern IntPtr libatgw_inner_v1_c_get_crypt_type(IntPtr context);
 
         [DllImport(LIBNAME, CallingConvention = CallingConvention.Cdecl)]
         private static extern ulong libatgw_inner_v1_c_get_crypt_secret_size(IntPtr context);
@@ -598,7 +616,7 @@ namespace atframe.gw.inner
             get
             {
                 IntPtr native = NativeProtocol;
-                if (0 == native.ToInt64())
+                if (IntPtr.Zero == native)
                 {
                     return "";
                 }
@@ -612,7 +630,7 @@ namespace atframe.gw.inner
         public void SetReceiveBufferLimit(ulong max_size, ulong max_number)
         {
             IntPtr native = NativeProtocol;
-            if (0 == native.ToInt64())
+            if (IntPtr.Zero == native)
             {
                 return;
             }
@@ -623,7 +641,7 @@ namespace atframe.gw.inner
         public void SetSendBufferLimit(ulong max_size, ulong max_number)
         {
             IntPtr native = NativeProtocol;
-            if (0 == native.ToInt64())
+            if (IntPtr.Zero == native)
             {
                 return;
             }
@@ -631,26 +649,60 @@ namespace atframe.gw.inner
             libatgw_inner_v1_c_set_send_buffer_limit(native, max_size, max_number);
         }
 
-        public int StartSession()
-        {
-            IntPtr native = NativeProtocol;
-            if (0 == native.ToInt64())
-            {
-                return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
-            }
-
-            return libatgw_inner_v1_c_start_session(native);
+        /// <summary>
+        /// Initialize cipher algorithms, should be called bebore AvailableCryptTypes, StartSession or ReconnectSession
+        /// </summary>
+        static public void GlobalInitialize() {
+            libatgw_inner_v1_c_global_init_algorithms();
         }
 
-        public int ReconnectSession(ulong session_id, int crypt_type, byte[] secret, uint keybits)
+        /// <summary>
+        /// Initialize cipher algorithms, should be called bebore StartSession or ReconnectSession
+        /// </summary>
+        static public string[] AvailableCryptTypes
+        {
+            get
+            {
+                string[] ret = null;
+                ulong sz = libatgw_inner_v1_c_global_get_crypt_size();
+                ret = new string[sz];
+                ulong real_sz = 0;
+
+                for (ulong idx = 0; idx < sz; ++idx)
+                {
+                    IntPtr val = libatgw_inner_v1_c_global_get_crypt_name(idx);
+                    if (IntPtr.Zero == val)
+                    {
+                        continue;
+                    }
+
+                    ret[real_sz++] = Marshal.PtrToStringAnsi(val);
+                }
+
+                return ret;
+            }
+        }
+
+        public int StartSession(string crypt_type)
         {
             IntPtr native = NativeProtocol;
-            if (0 == native.ToInt64())
+            if (IntPtr.Zero == native)
             {
                 return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
 
-            return libatgw_inner_v1_c_reconnect_session(native, session_id, crypt_type, secret, (ulong)secret.Length, keybits);
+            return libatgw_inner_v1_c_start_session(native, crypt_type);
+        }
+
+        public int ReconnectSession(ulong session_id, string crypt_type, byte[] secret)
+        {
+            IntPtr native = NativeProtocol;
+            if (IntPtr.Zero == native)
+            {
+                return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
+            }
+
+            return libatgw_inner_v1_c_reconnect_session(native, session_id, crypt_type, secret, (ulong)secret.Length);
         }
 
         public ulong SessionID
@@ -658,7 +710,7 @@ namespace atframe.gw.inner
             get
             {
                 IntPtr native = NativeProtocol;
-                if (0 == native.ToInt64())
+                if (IntPtr.Zero == native)
                 {
                     return 0;
                 }
@@ -667,17 +719,23 @@ namespace atframe.gw.inner
             }
         }
 
-        public int CryptType
+        public string CryptType
         {
             get
             {
                 IntPtr native = NativeProtocol;
-                if (0 == native.ToInt64())
+                if (IntPtr.Zero == native)
                 {
-                    return 0;
+                    return "";
                 }
 
-                return libatgw_inner_v1_c_get_crypt_type(native);
+                IntPtr cstr = libatgw_inner_v1_c_get_crypt_type(native);
+                if (IntPtr.Zero == cstr)
+                {
+                    return "";
+                }
+
+                return Marshal.PtrToStringAnsi(cstr);
             }
         }
 
@@ -686,7 +744,7 @@ namespace atframe.gw.inner
             get
             {
                 IntPtr native = NativeProtocol;
-                if (0 == native.ToInt64())
+                if (IntPtr.Zero == native)
                 {
                     return new byte[0];
                 }
@@ -703,7 +761,7 @@ namespace atframe.gw.inner
             get
             {
                 IntPtr native = NativeProtocol;
-                if (0 == native.ToInt64())
+                if (IntPtr.Zero == native)
                 {
                     return 0;
                 }
@@ -717,13 +775,13 @@ namespace atframe.gw.inner
         /// </summary>
         /// <param name="suggest_size">suggest size to allocate, it's 64KB in libuv</param>
         /// <param name="len">allocated buffer length</param>
-        /// <returns>allocated buffer address, IntPtr(0) if failed</returns>
+        /// <returns>allocated buffer address, IntPtr.Zero if failed</returns>
         public IntPtr AllocForRead(ulong suggest_size, out ulong len)
         {
             IntPtr native = NativeProtocol;
-            if (0 == native.ToInt64())
+            if (IntPtr.Zero == native)
             {
-                _last_alloc = new IntPtr(0);
+                _last_alloc = IntPtr.Zero;
                 len = 0;
                 return _last_alloc;
             }
@@ -740,7 +798,7 @@ namespace atframe.gw.inner
         public int ReadDone(ulong read_sz)
         {
             IntPtr native = NativeProtocol;
-            if (0 == native.ToInt64())
+            if (IntPtr.Zero == native)
             {
                 return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
@@ -770,7 +828,7 @@ namespace atframe.gw.inner
                 IntPtr alloc_buf;
                 ulong alloc_len;
                 alloc_buf = AllocForRead(len - offset, out alloc_len);
-                if (0 == alloc_len || 0 == alloc_buf.ToInt64())
+                if (0 == alloc_len || IntPtr.Zero == alloc_buf)
                 {
                     return (int)error_code_t.EN_ECT_MALLOC;
                 }
@@ -806,7 +864,7 @@ namespace atframe.gw.inner
         public int NotifyWriteDone(int status)
         {
             IntPtr native = NativeProtocol;
-            if (0 == native.ToInt64())
+            if (IntPtr.Zero == native)
             {
                 return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
@@ -817,7 +875,7 @@ namespace atframe.gw.inner
         public int PostMessage(byte[] buf)
         {
             IntPtr native = NativeProtocol;
-            if (0 == native.ToInt64())
+            if (IntPtr.Zero == native)
             {
                 return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
@@ -833,7 +891,7 @@ namespace atframe.gw.inner
         public int SendPing()
         {
             IntPtr native = NativeProtocol;
-            if (0 == native.ToInt64())
+            if (IntPtr.Zero == native)
             {
                 return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
@@ -846,7 +904,7 @@ namespace atframe.gw.inner
             get
             {
                 IntPtr native = NativeProtocol;
-                if (0 == native.ToInt64())
+                if (IntPtr.Zero == native)
                 {
                     return 0;
                 }
@@ -858,7 +916,7 @@ namespace atframe.gw.inner
         public int Close(int reason = (int)close_reason_t.EN_CRT_UNKNOWN)
         {
             IntPtr native = NativeProtocol;
-            if (0 == native.ToInt64())
+            if (IntPtr.Zero == native)
             {
                 return (int)error_code_t.EN_ECT_HANDLE_NOT_FOUND;
             }
@@ -871,7 +929,7 @@ namespace atframe.gw.inner
             get
             {
                 IntPtr native = NativeProtocol;
-                if (0 == native.ToInt64())
+                if (IntPtr.Zero == native)
                 {
                     return false;
                 }
@@ -885,7 +943,7 @@ namespace atframe.gw.inner
             get
             {
                 IntPtr native = NativeProtocol;
-                if (0 == native.ToInt64())
+                if (IntPtr.Zero == native)
                 {
                     return false;
                 }
@@ -899,7 +957,7 @@ namespace atframe.gw.inner
             get
             {
                 IntPtr native = NativeProtocol;
-                if (0 == native.ToInt64())
+                if (IntPtr.Zero == native)
                 {
                     return false;
                 }
@@ -913,7 +971,7 @@ namespace atframe.gw.inner
             get
             {
                 IntPtr native = NativeProtocol;
-                if (0 == native.ToInt64())
+                if (IntPtr.Zero == native)
                 {
                     return false;
                 }
@@ -927,7 +985,7 @@ namespace atframe.gw.inner
             get
             {
                 IntPtr native = NativeProtocol;
-                if (0 == native.ToInt64())
+                if (IntPtr.Zero == native)
                 {
                     return false;
                 }
@@ -941,7 +999,7 @@ namespace atframe.gw.inner
             get
             {
                 IntPtr native = NativeProtocol;
-                if (0 == native.ToInt64())
+                if (IntPtr.Zero == native)
                 {
                     return false;
                 }

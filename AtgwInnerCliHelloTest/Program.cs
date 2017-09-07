@@ -85,11 +85,23 @@ namespace AtgwInnerCliHelloTest
         {
             if (args.Length < 2)
             {
-                Console.WriteLine(String.Format("usage: {0} <ip> <port>", System.Environment.CommandLine));
+                Console.WriteLine(String.Format("usage: {0} <ip> <port> [crypt type]", System.Environment.CommandLine));
                 return;
             }
 
+            string start_crypt_type = "xxtea:aes-256-cfb:aes-192-cfb:aes-128-cfb";
+            ClientProtocol.GlobalInitialize();
 
+            if (args.Length > 2)
+            {
+                start_crypt_type = args[2];
+            }
+            else
+            {
+                start_crypt_type = String.Join(':', ClientProtocol.AvailableCryptTypes);
+            }
+
+            Console.WriteLine(String.Format("Accept: {0}", start_crypt_type));
             TcpClient sock = new TcpClient();
 
             ClientProtocol proto = CreateClient(sock);
@@ -104,7 +116,7 @@ namespace AtgwInnerCliHelloTest
                 return;
             }
 
-            int ret = proto.StartSession();
+            int ret = proto.StartSession(start_crypt_type);
             if (ret < 0)
             {
                 Console.WriteLine(String.Format("[Error]: Start session failed, res: {0}", ret));
@@ -125,8 +137,7 @@ namespace AtgwInnerCliHelloTest
                     {
                         byte[] secret = proto.Secret;
                         ulong session_id = proto.SessionID;
-                        uint keybits = proto.Keybits;
-                        int crypt_type = proto.CryptType;
+                        string crypt_type = proto.CryptType;
 
                         sock = new TcpClient();
                         proto = CreateClient(sock);
@@ -134,11 +145,11 @@ namespace AtgwInnerCliHelloTest
 
                         if (session_id > 0)
                         {
-                            proto.ReconnectSession(session_id, crypt_type, secret, keybits);
+                            proto.ReconnectSession(session_id, crypt_type, secret);
                         }
                         else
                         {
-                            proto.StartSession();
+                            proto.StartSession(start_crypt_type);
                         }
                     }
                     catch (Exception e)
